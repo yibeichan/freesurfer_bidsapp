@@ -25,8 +25,8 @@ The app implements:
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/bids-freesurfer.git
-cd bids-freesurfer
+git clone https://github.com/yourusername/freesurfer-bidsapp.git
+cd freesurfer-bidsapp
 ```
 
 # Container Support
@@ -42,7 +42,7 @@ You can build the container images using these commands:
 python setup.py docker
 
 # Build Singularity/Apptainer image on clusters
-apptainer build --fakeroot freesurfer_bidsapp.sif Singularity
+no
 
 # Or build in a custom location
 apptainer build --fakeroot /path/to/output/freesurfer_bidsapp.sif Singularity

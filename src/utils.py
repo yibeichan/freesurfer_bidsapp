@@ -167,7 +167,7 @@ def get_version_info():
         Dictionary containing version information for all components
     """
     version_info = {
-        "bids_freesurfer": {
+        "freesurfer_bidsapp": {
             "version": "unknown",
             "source": "package",
             "timestamp": datetime.datetime.now().isoformat()
@@ -190,9 +190,9 @@ def get_version_info():
         if version_path.exists():
             with open(version_path, "r") as f:
                 version_data = json.load(f)
-                # Update bids_freesurfer version
-                if "bids_freesurfer" in version_data:
-                    version_info["bids_freesurfer"].update(version_data["bids_freesurfer"])
+                # Update freesurfer_bidsapp version
+                if "freesurfer_bidsapp" in version_data:
+                    version_info["freesurfer_bidsapp"].update(version_data["freesurfer_bidsapp"])
                 # Update freesurfer version
                 if "freesurfer" in version_data:
                     version_info["freesurfer"].update(version_data["freesurfer"])
@@ -208,22 +208,22 @@ def get_version_info():
                 for line in f:
                     if line.startswith('    version="'):
                         version = line.strip().split('"')[1]
-                        version_info["bids_freesurfer"]["version"] = version
-                        version_info["bids_freesurfer"]["source"] = "setup.py"
+                        version_info["freesurfer_bidsapp"]["version"] = version
+                        version_info["freesurfer_bidsapp"]["source"] = "setup.py"
                         break
     except Exception as e:
         logging.warning(f"Failed to read setup.py: {str(e)}")
 
     # Fallback to package version if setup.py not available
-    if version_info["bids_freesurfer"]["version"] == "unknown":
+    if version_info["freesurfer_bidsapp"]["version"] == "unknown":
         try:
             from importlib.metadata import version
-            version_info["bids_freesurfer"]["version"] = version("bids-freesurfer")
-            version_info["bids_freesurfer"]["source"] = "package"
+            version_info["freesurfer_bidsapp"]["version"] = version("freesurfer-bidsapp")
+            version_info["freesurfer_bidsapp"]["source"] = "package"
         except ImportError:
             try:
                 from pkg_resources import get_distribution
-                version_info["bids_freesurfer"]["version"] = get_distribution("bids-freesurfer").version
+                version_info["freesurfer_bidsapp"]["version"] = get_distribution("freesurfer-bidsapp").version
             except Exception:
                 pass
 

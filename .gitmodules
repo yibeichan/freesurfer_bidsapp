@@ -1,3 +1,4 @@
 [submodule "src/segstats_jsonld"]
 	path = src/segstats_jsonld
-	url = https://github.com/ReproNim/segstats_jsonld.git
+	url = https://github.com/yibeichan/segstats_jsonld.git
+	branch = feature/fs-provenance-link
