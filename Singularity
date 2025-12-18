@@ -32,6 +32,7 @@ From: vnmd/freesurfer_8.0.0
     
     cd /opt
     python3 -m pip install -r requirements.txt
+    python3 -m pip install --no-cache-dir --upgrade 'rdflib>=6.3.2'
     python3 -m pip install -e .
 
 %environment

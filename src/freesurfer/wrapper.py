@@ -22,7 +22,7 @@ from bids import BIDSLayout
 from src.utils import get_freesurfer_version, get_version_info
 
 # Configure logging
-logger = logging.getLogger("bids-freesurfer.wrapper")
+logger = logging.getLogger("freesurfer-bidsapp.wrapper")
 
 
 class FreeSurferWrapper:
@@ -46,8 +46,9 @@ class FreeSurferWrapper:
         self.freesurfer_dir = self.output_dir / "freesurfer"
         self.freesurfer_license = freesurfer_license    
 
-        # Track processing results
+        # Track processing results and image information
         self.results = {"success": [], "failure": [], "skipped": []}
+        self.subject_t1_mapping = {}  # Store subject->T1 mapping
         self.temp_files = []
 
         # Ensure output directories exist
@@ -115,7 +116,7 @@ class FreeSurferWrapper:
             fs_subject_id = f"{subject_id}_ses-{session_label}"
         else:
             fs_subject_id = subject_id
-            
+
         cmd = ["recon-all", "-subjid", fs_subject_id]
 
         # Add T1w images
@@ -125,7 +126,7 @@ class FreeSurferWrapper:
         # Add T2w image if available
         if t2w_images and len(t2w_images) > 0:
             cmd.extend(["-T2", str(t2w_images[0]), "-T2pial"])
-            
+
         cmd.append("-all")
         return cmd
 
@@ -147,7 +148,7 @@ class FreeSurferWrapper:
         bool
             True if processing was successful, False otherwise
         """
-        logger.info(f"Processing {subject_id}" + 
+        logger.info(f"Processing {subject_id}" +
                    (f" session {session_label}" if session_label else ""))
 
         try:
@@ -171,24 +172,24 @@ class FreeSurferWrapper:
             # Find T1w and T2w images
             t1w_images = self._find_images(layout, bids_subject, "T1w", bids_session)
             if not t1w_images:
-                logger.error(f"No T1w images found for {subject_id}" + 
+                logger.error(f"No T1w images found for {subject_id}" +
                            (f" session {session_label}" if session_label else ""))
-                self.results["skipped"].append(f"{subject_id}" + 
+                self.results["skipped"].append(f"{subject_id}" +
                                              (f"_ses-{bids_session}" if bids_session else ""))
                 return False
 
+            # Store T1 image information
+            fs_subject_id = f"{subject_id}_ses-{session_label}" if session_label else subject_id
+            self.subject_t1_mapping[fs_subject_id] = {
+                'T1w_images': [str(img) for img in t1w_images],
+                'session': session_label
+            }
+
             t2w_images = self._find_images(layout, bids_subject, "T2w", bids_session)
             if t2w_images:
-                logger.info(f"Found {len(t2w_images)} T2w images for {subject_id}" + 
+                logger.info(f"Found {len(t2w_images)} T2w images for {subject_id}" +
                            (f" session {session_label}" if session_label else ""))
-
-            # Determine the FreeSurfer subject ID
-            fs_subject_id = subject_id
-            if session_label:
-                if session_label.startswith("ses-"):
-                    fs_subject_id = f"{subject_id}_{session_label}"
-                else:
-                    fs_subject_id = f"{subject_id}_ses-{session_label}"
+                self.subject_t1_mapping[fs_subject_id]['T2w_images'] = [str(img) for img in t2w_images]
 
             # Check if subject already processed
             if (self.freesurfer_dir / fs_subject_id / "scripts" / "recon-all.done").exists():
@@ -197,7 +198,7 @@ class FreeSurferWrapper:
                 return True
 
             # Run recon-all
-            cmd = self._create_recon_all_command(subject_id, t1w_images, t2w_images, 
+            cmd = self._create_recon_all_command(subject_id, t1w_images, t2w_images,
                                                 bids_session if session_label else None)
             logger.info(f"Running command: {' '.join(cmd)}")
             
@@ -211,17 +212,17 @@ class FreeSurferWrapper:
             return True
 
         except Exception as e:
-            logger.error(f"Error processing {subject_id}" + 
-                        (f" session {session_label}" if session_label else "") + 
+            logger.error(f"Error processing {subject_id}" +
+                        (f" session {session_label}" if session_label else "") +
                         f": {str(e)}")
-            self.results["failure"].append(f"{subject_id}" + 
+            self.results["failure"].append(f"{subject_id}" +
                                          (f"_ses-{bids_session}" if bids_session else ""))
             return False
 
     def _find_images(self, layout, subject_id, suffix, session_id=None):
         """
         Find images for a subject with given suffix.
-        
+
         Parameters
         ----------
         layout : BIDSLayout
@@ -232,7 +233,7 @@ class FreeSurferWrapper:
             Image suffix (e.g., 'T1w', 'T2w')
         session_id : str, optional
             Session ID (without 'ses-' prefix)
-            
+
         Returns
         -------
         list
@@ -284,7 +285,7 @@ class FreeSurferWrapper:
         fs_subject_id = subject_id
         if session_label:
             fs_subject_id = f"{subject_id}_ses-{session_label}"
-            
+
         # Check FreeSurfer subject directory
         fs_subject_dir = self.freesurfer_dir / fs_subject_id
         if not fs_subject_dir.exists():
@@ -338,8 +339,8 @@ class FreeSurferWrapper:
                             "Description": "FreeSurfer cortical reconstruction and parcellation"
                         },
                         {
-                            "Name": "bids-freesurfer",
-                            "Version": version_info.get("bids_freesurfer", {}).get("version", "unknown"),
+                            "Name": "freesurfer-bidsapp",
+                            "Version": version_info.get("freesurfer_bidsapp", {}).get("version", "unknown"),
                             "Description": "BIDS App for FreeSurfer with NIDM Output"
                         }
                     ]
@@ -384,3 +385,21 @@ For more information about FreeSurfer, visit: http://surfer.nmr.mgh.harvard.edu/
             json.dump(summary, f, indent=2)
         logger.info(f"Processing summary saved to {output_path}")
         return output_path
+
+    def get_subject_t1_info(self, subject_id, session_label=None):
+        """Get T1 image information for a subject.
+
+        Parameters
+        ----------
+        subject_id : str
+            Subject ID (including 'sub-' prefix)
+        session_label : str, optional
+            Session label
+
+        Returns
+        -------
+        dict
+            Dictionary containing T1 image information
+        """
+        fs_subject_id = f"{subject_id}_ses-{session_label}" if session_label else subject_id
+        return self.subject_t1_mapping.get(fs_subject_id, {})

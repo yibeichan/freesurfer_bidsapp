@@ -9,7 +9,7 @@ def build_docker():
     """Build Docker container"""
     print("Building Docker image...")
     try:
-        subprocess.run(["docker", "build", "-t", "bids-freesurfer", "."], check=True)
+        subprocess.run(["docker", "build", "-t", "freesurfer-bidsapp", "."], check=True)
         print("Docker image built successfully")
     except subprocess.CalledProcessError as e:
         print(f"Docker build failed: {e}")
@@ -94,6 +94,7 @@ install_requires = [
     "numpy>=1.20.0",
     "pandas>=1.3.0",
     "pytest>=7.0.0",
+    "rdflib>=6.3.2",
 ]
 
 # Check if we're being called with a container build command
@@ -122,7 +123,7 @@ if len(sys.argv) > 1 and sys.argv[1] in ["docker", "singularity", "containers"]:
 init_git_submodules()
 
 setup(
-    name="bids-freesurfer",
+    name="freesurfer_bidsapp",
     version="0.1.0",
     description="BIDS App for FreeSurfer with NIDM Output",
     author="ReproNim",
@@ -130,7 +131,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     license="MIT",
-    url="https://github.com/ReproNim/bids-freesurfer",
+    url="https://github.com/ReproNim/freesurfer_bidsapp",
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
@@ -143,7 +144,7 @@ setup(
     ],
     entry_points={
         "console_scripts": [
-            "bids-freesurfer=src.run:cli",
+            "freesurfer_bidsapp=src.run:cli",
         ],
     },
     python_requires=">=3.9",
