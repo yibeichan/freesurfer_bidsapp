@@ -37,6 +37,27 @@ def get_freesurfer_version():
         logging.warning(f"Failed to get FreeSurfer version from VERSION file: {str(e)}")
         return "unknown"
 
+
+def get_app_version():
+    """
+    Get application version from VERSION file.
+
+    Returns
+    -------
+    str
+        Application version string, or "unknown" if not available
+    """
+    try:
+        version_path = Path(__file__).parent.parent / "VERSION"
+        if version_path.exists():
+            with open(version_path) as f:
+                data = json.load(f)
+                return data.get("freesurfer-nidm", {}).get("version", "unknown")
+    except Exception as e:
+        logging.warning(f"Failed to get application version from VERSION file: {e}")
+    return "unknown"
+
+
 def setup_logging(log_level=logging.INFO, log_file=None):
     """
     Configure logging for the application.
@@ -167,7 +188,7 @@ def get_version_info():
         Dictionary containing version information for all components
     """
     version_info = {
-        "freesurfer-nidm_bidsapp": {
+        "freesurfer-nidm": {
             "version": "unknown",
             "source": "package",
             "timestamp": datetime.datetime.now().isoformat()
@@ -190,9 +211,9 @@ def get_version_info():
         if version_path.exists():
             with open(version_path, "r") as f:
                 version_data = json.load(f)
-                # Update freesurfer-nidm_bidsapp version
-                if "freesurfer-nidm_bidsapp" in version_data:
-                    version_info["freesurfer-nidm_bidsapp"].update(version_data["freesurfer-nidm_bidsapp"])
+                # Update freesurfer-nidm version
+                if "freesurfer-nidm" in version_data:
+                    version_info["freesurfer-nidm"].update(version_data["freesurfer-nidm"])
                 # Update freesurfer version
                 if "freesurfer" in version_data:
                     version_info["freesurfer"].update(version_data["freesurfer"])
@@ -206,24 +227,26 @@ def get_version_info():
         if setup_path.exists():
             with open(setup_path, "r") as f:
                 for line in f:
-                    if line.startswith('    version="'):
-                        version = line.strip().split('"')[1]
-                        version_info["freesurfer-nidm_bidsapp"]["version"] = version
-                        version_info["freesurfer-nidm_bidsapp"]["source"] = "setup.py"
+                    if line.startswith('    version='):
+                        # Handle both version="..." and version=__version__
+                        version = line.strip().split('=')[1].strip().strip(',').strip('"')
+                        if version != "__version__":
+                            version_info["freesurfer-nidm"]["version"] = version
+                        version_info["freesurfer-nidm"]["source"] = "setup.py"
                         break
     except Exception as e:
         logging.warning(f"Failed to read setup.py: {str(e)}")
 
     # Fallback to package version if setup.py not available
-    if version_info["freesurfer-nidm_bidsapp"]["version"] == "unknown":
+    if version_info["freesurfer-nidm"]["version"] == "unknown":
         try:
             from importlib.metadata import version
-            version_info["freesurfer-nidm_bidsapp"]["version"] = version("freesurfer-nidm-bidsapp")
-            version_info["freesurfer-nidm_bidsapp"]["source"] = "package"
+            version_info["freesurfer-nidm"]["version"] = version("freesurfer-nidm")
+            version_info["freesurfer-nidm"]["source"] = "package"
         except ImportError:
             try:
                 from pkg_resources import get_distribution
-                version_info["freesurfer-nidm_bidsapp"]["version"] = get_distribution("freesurfer-nidm-bidsapp").version
+                version_info["freesurfer-nidm"]["version"] = get_distribution("freesurfer-nidm").version
             except Exception:
                 pass
 
